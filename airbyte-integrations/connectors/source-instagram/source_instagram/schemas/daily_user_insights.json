@@ -1,0 +1,38 @@
+{
+    "type": "object",
+    "properties": {
+        "page_id": {
+            "type": ["null", "string"]
+          },
+        "business_account_id": {
+            "type": ["null", "string"]
+        },
+        "accounts_engaged":{
+        "type": ["null", "integer"]
+        },
+        "likes":{
+            "type": ["null", "integer"]
+        },
+        "saves":{
+            "type": ["null", "integer"]
+        },
+        "shares":{
+            "type": ["null", "integer"]
+        },
+        "comments":{
+            "type": ["null", "integer"]
+        },
+        "profile_views":{
+            "type": ["null", "integer"]
+        },
+        "follows_and_unfollows":{
+            "type": ["null", "integer"]
+        },
+        "profile_links_taps":{
+            "type": ["null", "integer"]
+        },
+        "total_interactions":{
+            "type": ["null", "integer"]
+        }
+    }
+}

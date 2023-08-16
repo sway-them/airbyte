@@ -25,11 +25,11 @@ class TestInstagramSource:
     """Custom integration tests should test incremental with nested state"""
     def test_account_user_insights(self, configured_catalog, config, state):
         
-        # catalog = self.slice_catalog(configured_catalog, lambda name: name == "media_insights")
+        catalog = self.slice_catalog(configured_catalog, lambda name: name == "media_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "story_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "daily_user_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "profile_activity_media_insights")
-        catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_demographics_insights")
+        # catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_demographics_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_lifetime_insights")
         
         

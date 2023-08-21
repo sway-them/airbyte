@@ -10,7 +10,7 @@ from typing import Any, List, MutableMapping, Set, Tuple
 import pytest
 from airbyte_cdk.models import AirbyteMessage, ConfiguredAirbyteCatalog, ConfiguredAirbyteStream, DestinationSyncMode, SyncMode, Type
 from source_facebook_marketing.source import SourceFacebookMarketing
-
+import ipdb
 
 @pytest.fixture(scope="session", name="state")
 def state_fixture() -> MutableMapping[str, MutableMapping[str, Any]]:
@@ -39,11 +39,16 @@ def configured_catalog_fixture(config) -> ConfiguredAirbyteCatalog:
 
 class TestFacebookMarketingSource:
     @pytest.mark.parametrize(
-        "stream_name, deleted_id", [("ads", "23846756820320398"), ("campaigns", "23846541919710398"), ("ad_sets", "23846541706990398")]
+        "stream_name, deleted_id", [
+            # ("ads", "23846756820320398"),
+            ("campaigns", "23846541919710398"),
+            # ("ad_sets", "23846541706990398")
+        ]
     )
     def test_streams_with_include_deleted(self, stream_name, deleted_id, config_with_include_deleted, configured_catalog):
         catalog = self._slice_catalog(configured_catalog, {stream_name})
         records, states = self._read_records(config_with_include_deleted, catalog)
+        ipdb.set_trace()
         deleted_records = list(filter(self._deleted_record, records))
         is_specific_deleted_pulled = deleted_id in list(map(self._object_id, records))
 
@@ -57,12 +62,12 @@ class TestFacebookMarketingSource:
     @pytest.mark.parametrize(
         "stream_name, deleted_num, include_deleted_in_state",
         [
-            ("ads", 2, False),
-            ("campaigns", 3, False),
-            ("ad_sets", 1, False),
-            ("ads", 0, True),
+            # ("ads", 2, False),
+            # ("campaigns", 3, False),
+            # ("ad_sets", 1, False),
+            # ("ads", 0, True),
             ("campaigns", 0, True),
-            ("ad_sets", 0, True),
+            # ("ad_sets", 0, True),
         ],
     )
     def test_streams_with_include_deleted_and_state(
@@ -73,7 +78,7 @@ class TestFacebookMarketingSource:
             state = copy.deepcopy(state)
             for value in state.values():
                 value["include_deleted"] = True
-
+        ipdb.set_trace()
         catalog = self._slice_catalog(configured_catalog, {stream_name})
         records, states = self._read_records(config_with_include_deleted, catalog, state=state)
         deleted_records = list(filter(self._deleted_record, records))

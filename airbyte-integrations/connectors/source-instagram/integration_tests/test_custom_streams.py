@@ -14,28 +14,24 @@ from source_instagram.source import SourceInstagram
 @pytest.fixture(name="state")
 def state_fixture() -> MutableMapping[str, Any]:
     today = pendulum.today()
-    return {
-        "user_insights": {
-            "17841451282174033": {"date": (today - pendulum.duration(days=2)).to_datetime_string()}
-        }
-    }
+    return {"user_insights": {"17841451282174033": {"date": (today - pendulum.duration(days=2)).to_datetime_string()}}}
 
 
 class TestInstagramSource:
     """Custom integration tests should test incremental with nested state"""
+
     def test_account_user_insights(self, configured_catalog, config, state):
-        
-        catalog = self.slice_catalog(configured_catalog, lambda name: name == "media_insights")
+        # catalog = self.slice_catalog(configured_catalog, lambda name: name == "media_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "story_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "daily_user_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "profile_activity_media_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_demographics_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_lifetime_insights")
-        
-        
+        catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_insights_with_breakdown")
+
         records, states = self._read_records(config, catalog)
         # import ipdb
-        # ipdb.set_trace()    
+        # ipdb.set_trace()
 
     @staticmethod
     def slice_catalog(catalog: ConfiguredAirbyteCatalog, predicate: Callable[[str], bool]) -> ConfiguredAirbyteCatalog:

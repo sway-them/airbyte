@@ -37,6 +37,9 @@
     "carousel_album_saved": {
       "type": ["null", "integer"]
     },
+    "carousel_album_video_views": {
+      "type": ["null", "integer"]
+    },
     "comments": {
       "type": ["null", "integer"]
     },
@@ -51,6 +54,15 @@
     },
     "plays": {
       "type": ["null", "integer"]
-    }
+    },
+    "follows": {
+      "type": ["null", "integer"]
+    },
+    "profile_visits": {
+      "type": ["null", "integer"]
+    },
+    "profile_activity": {
+      "type": ["null", "integer"]
+    }    
   }
 }

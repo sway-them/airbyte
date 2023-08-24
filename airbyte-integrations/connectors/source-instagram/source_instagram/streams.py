@@ -404,7 +404,9 @@ class UserInsights(InstagramIncrementalStream):
     ) -> Iterable[Optional[Mapping[str, Any]]]:
         """Extend default slicing based on accounts with slices based on date intervals"""
         stream_state = stream_state or {}
-        stream_slices = super().stream_slices(sync_mode=sync_mode, cursor_field=cursor_field, stream_state=stream_state)
+        stream_slices = super().stream_slices(
+            sync_mode=sync_mode, cursor_field=cursor_field, stream_state=stream_state
+        )
         for stream_slice in stream_slices:
             account = stream_slice["account"]
             account_id = account["instagram_business_account"]["id"]
@@ -543,6 +545,66 @@ class DailyUserInsights(InstagramStream):
         return False
 
 
+class UserTags(InstagramStream):
+    """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-user/tags"""
+
+    fields = ["id", "username"]
+
+    primary_key = None
+
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: List[str] = None,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        account = stream_slice["account"]
+        ig_account = account["instagram_business_account"]
+        account_id = ig_account.get("id")
+
+        base_params = self.request_params(stream_state=stream_state, stream_slice=stream_slice)
+
+        params = {**base_params, "fields": self.fields}
+
+        try:
+            tags = ig_account.get_tags(params=params)
+            for tag in tags:
+                record = {
+                    "page_id": account["page_id"],
+                    "business_account_id": account_id,
+                }
+                if "id" in tag:
+                    record["id"] = tag["id"]
+                if "username" in tag:
+                    record["username"] = tag["username"]
+                yield record
+        except FacebookRequestError as e:
+            print("Error in UserTags:", e)
+            self.logger.warning(
+                f"No data received for base params {json.dumps(base_params)}. "
+                f"Since we can't know whether there is no data or the data is temporarily unavailable, stop syncing so as not to miss "
+                f"temporarily unavailable data."
+            )
+            self.should_exit_gracefully = True
+
+    def request_params(
+        self,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> MutableMapping[str, Any]:
+        """Append datetime range params"""
+        params = super().request_params(stream_state=stream_state, stream_slice=stream_slice)
+        return {**params}
+
+    def _state_has_legacy_format(self, state: Mapping[str, Any]) -> bool:
+        """Tell if the format of state is outdated"""
+        for value in state.values():
+            if not isinstance(value, Mapping):
+                return True
+        return False
+
+
 class Media(InstagramStream):
     """Children objects can only be of the media_type == "CAROUSEL_ALBUM".
     And children object does not support INVALID_CHILDREN_FIELDS fields,
@@ -587,7 +649,16 @@ class Media(InstagramStream):
 class MediaInsights(Media):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"""
 
-    MEDIA_METRICS = ["engagement", "impressions", "reach", "saved", "shares", "follows", "profile_visits", "profile_activity"]
+    MEDIA_METRICS = [
+        "engagement",
+        "impressions",
+        "reach",
+        "saved",
+        "shares",
+        "follows",
+        "profile_visits",
+        "profile_activity",
+    ]
     CAROUSEL_ALBUM_METRICS = [
         "carousel_album_engagement",
         "carousel_album_impressions",
@@ -670,7 +741,9 @@ class ProfileActivityMediaInsights(Media):
         media = ig_account.get_media(params=self.request_params(), fields=["media_type", "media_product_type"])
         # Filter insights for profile_activity metrics
         filtered_media = [
-            item for item in media if item["media_product_type"] in ["FEED", "STORY"] and item["media_type"] in ["IMAGE", "VIDEO"]
+            item
+            for item in media
+            if item["media_product_type"] in ["FEED", "STORY"] and item["media_type"] in ["IMAGE", "VIDEO"]
         ]
 
         # ipdb.set_trace()
@@ -756,7 +829,17 @@ class Stories(InstagramStream):
 class StoryInsights(Stories):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"""
 
-    metrics = ["exits", "impressions", "reach", "replies", "taps_forward", "taps_back", "follows", "profile_visits", "profile_activity"]
+    metrics = [
+        "exits",
+        "impressions",
+        "reach",
+        "replies",
+        "taps_forward",
+        "taps_back",
+        "follows",
+        "profile_visits",
+        "profile_activity",
+    ]
 
     def read_records(
         self,

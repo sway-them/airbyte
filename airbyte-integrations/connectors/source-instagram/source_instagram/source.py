@@ -22,6 +22,7 @@ from source_instagram.streams import (
     UserInsightsWithBreakdown,
     UserLifetimeInsights,
     Users,
+    UserTags,
 )
 
 
@@ -100,6 +101,7 @@ class SourceInstagram(AbstractSource):
             ProfileActivityMediaInsights(api=api),
             UserDemographicsInsights(api=api),
             UserInsightsWithBreakdown(api=api),
+            UserTags(api=api),
         ]
 
     def spec(self, *args, **kwargs) -> ConnectorSpecification:
@@ -118,7 +120,9 @@ class SourceInstagram(AbstractSource):
                 oauth_config_specification=OAuthConfigSpecification(
                     complete_oauth_output_specification={
                         "type": "object",
-                        "properties": {"access_token": {"type": "string", "path_in_connector_config": ["access_token"]}},
+                        "properties": {
+                            "access_token": {"type": "string", "path_in_connector_config": ["access_token"]}
+                        },
                     },
                     complete_oauth_server_input_specification={
                         "type": "object",

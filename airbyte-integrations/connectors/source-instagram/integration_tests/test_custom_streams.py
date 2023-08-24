@@ -27,10 +27,12 @@ class TestInstagramSource:
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "profile_activity_media_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_demographics_insights")
         # catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_lifetime_insights")
-        catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_insights_with_breakdown")
+        # catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_insights_with_breakdown")
+        catalog = self.slice_catalog(configured_catalog, lambda name: name == "user_tags")
 
         records, states = self._read_records(config, catalog)
         # import ipdb
+
         # ipdb.set_trace()
 
     @staticmethod

@@ -8,6 +8,7 @@ from abc import ABC
 from datetime import datetime
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional
 
+# import ipdb
 import pendulum
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams import IncrementalMixin, Stream
@@ -17,7 +18,7 @@ from facebook_business.exceptions import FacebookRequestError
 from source_instagram.api import InstagramAPI
 
 from .common import remove_params_from_url
-# import ipdb
+
 
 class InstagramStream(Stream, ABC):
     """Base stream class"""
@@ -163,7 +164,7 @@ class UserDemographicsInsights(InstagramStream):
     LIFETIME_METRICS = ["engaged_audience_demographics", "reached_audience_demographics", "follower_demographics"]
     BREAKDOWN = ["age", "city", "country", "gender"]
     TIMEFRAME = ["last_14_days", "last_30_days", "last_90_days", "prev_month", "this_month", "this_week"]
-    
+
     period = "lifetime"
 
     def read_records(
@@ -176,74 +177,74 @@ class UserDemographicsInsights(InstagramStream):
         account = stream_slice["account"]
         ig_account = account["instagram_business_account"]
         metric_type = "total_value"
-        
-        for metric in self.LIFETIME_METRICS:            
-            for breakdown in self.BREAKDOWN:                
-                for timeframe in self.TIMEFRAME:                                     
-                    params ={                        
+
+        for metric in self.LIFETIME_METRICS:
+            for breakdown in self.BREAKDOWN:
+                for timeframe in self.TIMEFRAME:
+                    params = {
                         "metric": metric,
                         "period": self.period,
-                        "metric_type": metric_type,                        
-                        "breakdown":[breakdown],
-                        "timeframe":timeframe
+                        "metric_type": metric_type,
+                        "breakdown": [breakdown],
+                        "timeframe": timeframe,
                     }
                     try:
                         insights = ig_account.get_insights(params=params)
                         for insight in insights:
-                            record= {
+                            record = {
                                 "page_id": account["page_id"],
                                 "business_account_id": ig_account.get("id"),
                                 "metric": insight["name"],
-                                "breakdown":breakdown,
-                                "timeframe":timeframe                                
-                            }                                
+                                "breakdown": breakdown,
+                                "timeframe": timeframe,
+                            }
                             if "total_value" in insight:
-                                total_value ={}
+                                total_value = {}
                                 for insights_breakdown in insight["total_value"]["breakdowns"]:
                                     for result in insights_breakdown["results"]:
                                         key = "_".join(result["dimension_values"])
-                                        total_value[key]=result["value"]
-                                record["value"]=total_value
-                                  
-                            yield record      
+                                        total_value[key] = result["value"]
+                                record["value"] = total_value
+
+                            yield record
                     except FacebookRequestError as e:
                         # print("Error in UserDemographicsInsights: ",e)
                         continue
-                    
-        #Age-gender breakdown
-        for metric in self.LIFETIME_METRICS:            
-            for timeframe in self.TIMEFRAME:                                     
-                params ={                        
+
+        # Age-gender breakdown
+        for metric in self.LIFETIME_METRICS:
+            for timeframe in self.TIMEFRAME:
+                params = {
                     "metric": metric,
                     "period": self.period,
-                    "metric_type": metric_type,                        
-                    "breakdown":["gender","age"],
-                    "timeframe":timeframe
+                    "metric_type": metric_type,
+                    "breakdown": ["gender", "age"],
+                    "timeframe": timeframe,
                 }
                 try:
                     insights = ig_account.get_insights(params=params)
-                    
+
                     for insight in insights:
-                        
-                        record= {
+                        record = {
                             "page_id": account["page_id"],
                             "business_account_id": ig_account.get("id"),
                             "metric": insight["name"],
-                            "breakdown":breakdown,
-                            "timeframe":timeframe                                
-                        }                                
+                            "breakdown": breakdown,
+                            "timeframe": timeframe,
+                        }
                         if "total_value" in insight:
-                            total_value ={}
+                            total_value = {}
                             for insights_breakdown in insight["total_value"]["breakdowns"]:
                                 for result in insights_breakdown["results"]:
                                     key = ".".join(result["dimension_values"])
-                                    total_value[key]=result["value"]
-                            record["value"]=total_value
-                            
-                        yield record      
+                                    total_value[key] = result["value"]
+                            record["value"] = total_value
+
+                        yield record
                 except FacebookRequestError as e:
                     # print("Error in UserDemographicsInsights: ",e)
                     continue
+
     def request_params(
         self,
         stream_slice: Mapping[str, Any] = None,
@@ -252,7 +253,60 @@ class UserDemographicsInsights(InstagramStream):
         params = super().request_params(stream_slice=stream_slice, stream_state=stream_state)
         params.update({"metric": self.LIFETIME_METRICS, "period": self.period})
         return params
-    
+
+
+class UserInsightsWithBreakdown(InstagramStream):
+    """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-user/insights"""
+
+    primary_key = None
+    METRICS_BY_BREAKDOWN = {
+        "follow_type": ["reach", "follows_and_unfollows"],
+        "media_product_type": ["reach", "total_interactions", "likes", "comments", "saves", "shares"],
+        "media_product_type,follow_type": ["reach"],
+    }
+    period = "day"
+
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: List[str] = None,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        account = stream_slice["account"]
+        ig_account = account["instagram_business_account"]
+        metric_type = "total_value"
+        for breakdown, metric in self.METRICS_BY_BREAKDOWN.items():
+            params = {"metric": metric, "metric_type": metric_type, "breakdown": breakdown, "period": self.period}
+            try:
+                insights = ig_account.get_insights(params=params)
+                for insight in insights:
+                    record = {
+                        "page_id": account["page_id"],
+                        "business_account_id": ig_account.get("id"),
+                        "metric": insight["name"],
+                        "breakdown": breakdown,
+                    }
+                    if "total_value" in insight:
+                        total_value = {}
+                        for insights_breakdown in insight["total_value"]["breakdowns"]:
+                            if "results" in insights_breakdown:
+                                for result in insights_breakdown["results"]:
+                                    key = ".".join(result["dimension_values"])
+                                    total_value[key] = result["value"]
+                        record["value"] = total_value
+                    yield record
+            except FacebookRequestError as e:
+                continue
+
+    def request_params(
+        self,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> MutableMapping[str, Any]:
+        params = super().request_params(stream_slice=stream_slice, stream_state=stream_state)
+        return params
+
 
 class UserInsights(InstagramIncrementalStream):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-user/insights"""
@@ -350,7 +404,9 @@ class UserInsights(InstagramIncrementalStream):
     ) -> Iterable[Optional[Mapping[str, Any]]]:
         """Extend default slicing based on accounts with slices based on date intervals"""
         stream_state = stream_state or {}
-        stream_slices = super().stream_slices(sync_mode=sync_mode, cursor_field=cursor_field, stream_state=stream_state)
+        stream_slices = super().stream_slices(
+            sync_mode=sync_mode, cursor_field=cursor_field, stream_state=stream_state
+        )
         for stream_slice in stream_slices:
             account = stream_slice["account"]
             account_id = account["instagram_business_account"]["id"]
@@ -397,7 +453,7 @@ class DailyUserInsights(InstagramStream):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-user/insights"""
 
     METRICS_BY_PERIOD = {
-        "day": [           
+        "day": [
             "accounts_engaged",
             "likes",
             "saves",
@@ -406,13 +462,11 @@ class DailyUserInsights(InstagramStream):
             "profile_views",
             "follows_and_unfollows",
             "profile_links_taps",
-            "total_interactions"           
-        ]        
+            "total_interactions",
+        ]
     }
 
-    primary_key = None       
-
-    
+    primary_key = None
 
     def read_records(
         self,
@@ -421,15 +475,14 @@ class DailyUserInsights(InstagramStream):
         stream_slice: Mapping[str, Any] = None,
         stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Mapping[str, Any]]:
-        
         account = stream_slice["account"]
         ig_account = account["instagram_business_account"]
         account_id = ig_account.get("id")
-        
+
         base_params = self.request_params(stream_state=stream_state, stream_slice=stream_slice)
         insight_list = []
-        metric_type ="total_value"
-        # iterate over each period, query insights               
+        metric_type = "total_value"
+        # iterate over each period, query insights
         for period, metrics in self.METRICS_BY_PERIOD.items():
             params = {
                 **base_params,
@@ -439,7 +492,7 @@ class DailyUserInsights(InstagramStream):
             }
 
             # we get only first record, because cursor will try to fetch next date interval
-            
+
             cursor = ig_account.get_insights(params=params)
             if len(cursor):
                 insight_list += [insights.export_all_data() for insights in cursor[: len(cursor)]]
@@ -474,9 +527,6 @@ class DailyUserInsights(InstagramStream):
 
         # update state using IncrementalMixin
         # reference issue: https://github.com/airbytehq/airbyte/issues/24697
-        
-
-    
 
     def request_params(
         self,
@@ -485,10 +535,7 @@ class DailyUserInsights(InstagramStream):
     ) -> MutableMapping[str, Any]:
         """Append datetime range params"""
         params = super().request_params(stream_state=stream_state, stream_slice=stream_slice)
-        return {
-            **params
-            
-        }
+        return {**params}
 
     def _state_has_legacy_format(self, state: Mapping[str, Any]) -> bool:
         """Tell if the format of state is outdated"""
@@ -496,7 +543,67 @@ class DailyUserInsights(InstagramStream):
             if not isinstance(value, Mapping):
                 return True
         return False
-    
+
+
+class UserTags(InstagramStream):
+    """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-user/tags"""
+
+    fields = ["id", "username"]
+
+    primary_key = None
+
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: List[str] = None,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        account = stream_slice["account"]
+        ig_account = account["instagram_business_account"]
+        account_id = ig_account.get("id")
+
+        base_params = self.request_params(stream_state=stream_state, stream_slice=stream_slice)
+
+        params = {**base_params, "fields": self.fields}
+
+        try:
+            tags = ig_account.get_tags(params=params)
+            for tag in tags:
+                record = {
+                    "page_id": account["page_id"],
+                    "business_account_id": account_id,
+                }
+                if "id" in tag:
+                    record["id"] = tag["id"]
+                if "username" in tag:
+                    record["username"] = tag["username"]
+                yield record
+        except FacebookRequestError as e:
+            print("Error in UserTags:", e)
+            self.logger.warning(
+                f"No data received for base params {json.dumps(base_params)}. "
+                f"Since we can't know whether there is no data or the data is temporarily unavailable, stop syncing so as not to miss "
+                f"temporarily unavailable data."
+            )
+            self.should_exit_gracefully = True
+
+    def request_params(
+        self,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> MutableMapping[str, Any]:
+        """Append datetime range params"""
+        params = super().request_params(stream_state=stream_state, stream_slice=stream_slice)
+        return {**params}
+
+    def _state_has_legacy_format(self, state: Mapping[str, Any]) -> bool:
+        """Tell if the format of state is outdated"""
+        for value in state.values():
+            if not isinstance(value, Mapping):
+                return True
+        return False
+
 
 class Media(InstagramStream):
     """Children objects can only be of the media_type == "CAROUSEL_ALBUM".
@@ -542,8 +649,23 @@ class Media(InstagramStream):
 class MediaInsights(Media):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"""
 
-    MEDIA_METRICS = ["engagement", "impressions", "reach", "saved","shares","follows","profile_visits","profile_activity"]
-    CAROUSEL_ALBUM_METRICS = ["carousel_album_engagement", "carousel_album_impressions", "carousel_album_reach", "carousel_album_saved","carousel_album_video_views"]
+    MEDIA_METRICS = [
+        "engagement",
+        "impressions",
+        "reach",
+        "saved",
+        "shares",
+        "follows",
+        "profile_visits",
+        "profile_activity",
+    ]
+    CAROUSEL_ALBUM_METRICS = [
+        "carousel_album_engagement",
+        "carousel_album_impressions",
+        "carousel_album_reach",
+        "carousel_album_saved",
+        "carousel_album_video_views",
+    ]
     REELS_METRICS = ["comments", "likes", "reach", "saved", "shares", "total_interactions", "plays"]
     # STORY_METRICS = ["exits","impressions","reach","replies","taps_forward","taps_back","follows","profile_visits","profile_activity"]
 
@@ -572,7 +694,7 @@ class MediaInsights(Media):
         """Get insights for specific media"""
         if item.get("media_product_type") == "REELS":
             metrics = self.REELS_METRICS
-        # elif item.get("media_product_type") == "STORY":            
+        # elif item.get("media_product_type") == "STORY":
         #     metrics = self.STORY_METRICS
         elif item.get("media_type") == "VIDEO":
             metrics = self.MEDIA_METRICS + ["video_views"]
@@ -603,8 +725,10 @@ class MediaInsights(Media):
 class ProfileActivityMediaInsights(Media):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"""
 
-    METRICS = ["profile_activity",]    
-    
+    METRICS = [
+        "profile_activity",
+    ]
+
     def read_records(
         self,
         sync_mode: SyncMode,
@@ -617,7 +741,8 @@ class ProfileActivityMediaInsights(Media):
         media = ig_account.get_media(params=self.request_params(), fields=["media_type", "media_product_type"])
         # Filter insights for profile_activity metrics
         filtered_media = [
-            item for item in media
+            item
+            for item in media
             if item["media_product_type"] in ["FEED", "STORY"] and item["media_type"] in ["IMAGE", "VIDEO"]
         ]
 
@@ -625,47 +750,47 @@ class ProfileActivityMediaInsights(Media):
         for ig_media in filtered_media:
             account_id = ig_account.get("id")
             insights = self._get_insights(ig_media, account_id)
-            
-            if insights is None or len(insights)==0:
+
+            if insights is None or len(insights) == 0:
                 continue
             for final_record in insights:
-                record={}
+                record = {}
                 record["value"] = final_record
                 record["id"] = ig_media["id"]
                 record["page_id"] = account["page_id"]
                 record["business_account_id"] = ig_account["id"]
-                                
+
                 yield self.transform(record)
 
     def _get_insights(self, item, account_id) -> Optional[MutableMapping[str, Any]]:
-        """Get insights for specific media """
-                 
+        """Get insights for specific media"""
+
         metrics = self.METRICS
 
         try:
-            insights = item.get_insights(params={"metric": metrics,"breakdown":"action_type"})
-            
-            records =[]
-            # For normalized version 
+            insights = item.get_insights(params={"metric": metrics, "breakdown": "action_type"})
+
+            records = []
+            # For normalized version
             for record in insights:
                 final_record = {}
                 if "total_value" in record:
                     for breakdown in record["total_value"]["breakdowns"]:
                         for result in breakdown["results"]:
                             key = "_".join(result["dimension_values"])
-                            final_record[key]=result["value"]
+                            final_record[key] = result["value"]
                 if len(final_record.keys()) > 0:
                     records.append(final_record)
 
-            #Raw version
-            # for record in insights:                
+            # Raw version
+            # for record in insights:
             #     if "total_value" in record:
             #         if record["total_value"]["value"]>0:
             #             final_record = {}
-            #             final_record["value"]=record["total_value"]                
+            #             final_record["value"]=record["total_value"]
             #             records.append(final_record)
 
-            return records            
+            return records
         except FacebookRequestError as error:
             # An error might occur if the media was posted before the most recent time that
             # the user's account was converted to a business account from a personal account
@@ -679,7 +804,7 @@ class ProfileActivityMediaInsights(Media):
                 self.logger.error(f"Check provided permissions for {account_id}: {error.api_error_message()}")
                 return None
             raise error
-        
+
 
 class Stories(InstagramStream):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-user/stories"""
@@ -704,7 +829,17 @@ class Stories(InstagramStream):
 class StoryInsights(Stories):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"""
 
-    metrics = ["exits", "impressions", "reach", "replies", "taps_forward", "taps_back","follows","profile_visits","profile_activity"]
+    metrics = [
+        "exits",
+        "impressions",
+        "reach",
+        "replies",
+        "taps_forward",
+        "taps_back",
+        "follows",
+        "profile_visits",
+        "profile_activity",
+    ]
 
     def read_records(
         self,

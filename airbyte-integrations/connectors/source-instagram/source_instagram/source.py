@@ -10,7 +10,20 @@ from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from pydantic import BaseModel, Field
 from source_instagram.api import InstagramAPI
-from source_instagram.streams import Media, MediaInsights, Stories, StoryInsights, UserInsights, UserLifetimeInsights, Users, DailyUserInsights, ProfileActivityMediaInsights, UserDemographicsInsights
+from source_instagram.streams import (
+    DailyUserInsights,
+    Media,
+    MediaInsights,
+    ProfileActivityMediaInsights,
+    Stories,
+    StoryInsights,
+    UserDemographicsInsights,
+    UserInsights,
+    UserInsightsWithBreakdown,
+    UserLifetimeInsights,
+    Users,
+    UserTags,
+)
 
 
 class ConnectorConfig(BaseModel):
@@ -87,6 +100,8 @@ class SourceInstagram(AbstractSource):
             DailyUserInsights(api=api),
             ProfileActivityMediaInsights(api=api),
             UserDemographicsInsights(api=api),
+            UserInsightsWithBreakdown(api=api),
+            UserTags(api=api),
         ]
 
     def spec(self, *args, **kwargs) -> ConnectorSpecification:
@@ -105,7 +120,9 @@ class SourceInstagram(AbstractSource):
                 oauth_config_specification=OAuthConfigSpecification(
                     complete_oauth_output_specification={
                         "type": "object",
-                        "properties": {"access_token": {"type": "string", "path_in_connector_config": ["access_token"]}},
+                        "properties": {
+                            "access_token": {"type": "string", "path_in_connector_config": ["access_token"]}
+                        },
                     },
                     complete_oauth_server_input_specification={
                         "type": "object",

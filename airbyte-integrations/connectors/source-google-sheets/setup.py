@@ -6,7 +6,7 @@
 from setuptools import find_packages, setup
 
 MAIN_REQUIREMENTS = [
-    "airbyte-cdk~=0.1",
+    "airbyte-cdk",
     "backoff",
     "requests",
     "google-auth-httplib2",
@@ -32,5 +32,10 @@ setup(
     package_data={"": ["*.json", "*.yaml", "schemas/*.json", "schemas/shared/*.json"]},
     extras_require={
         "tests": TEST_REQUIREMENTS,
+    },
+    entry_points={
+        "console_scripts": [
+            "source-google-sheets=source_google_sheets.run:run",
+        ],
     },
 )

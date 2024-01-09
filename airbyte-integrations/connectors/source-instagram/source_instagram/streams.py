@@ -235,9 +235,10 @@ class UserDemographicsInsights(InstagramStream):
                             if "total_value" in insight:
                                 total_value = {}
                                 for insights_breakdown in insight["total_value"]["breakdowns"]:
-                                    for result in insights_breakdown["results"]:
-                                        key = "_".join(result["dimension_values"])
-                                        total_value[key] = result["value"]
+                                    if "results" in insights_breakdown:
+                                        for result in insights_breakdown["results"]:
+                                            key = "_".join(result["dimension_values"])
+                                            total_value[key] = result["value"]
                                 record["value"] = total_value
 
                             yield record
@@ -269,9 +270,10 @@ class UserDemographicsInsights(InstagramStream):
                         if "total_value" in insight:
                             total_value = {}
                             for insights_breakdown in insight["total_value"]["breakdowns"]:
-                                for result in insights_breakdown["results"]:
-                                    key = ".".join(result["dimension_values"])
-                                    total_value[key] = result["value"]
+                                if "results" in insights_breakdown:
+                                    for result in insights_breakdown["results"]:
+                                        key = ".".join(result["dimension_values"])
+                                        total_value[key] = result["value"]
                             record["value"] = total_value
 
                         yield record
@@ -682,7 +684,7 @@ class MediaInsights(Media):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"""
 
     MEDIA_METRICS = [
-        "engagement",
+        # "engagement",
         "impressions",
         "reach",
         "saved",
@@ -690,19 +692,19 @@ class MediaInsights(Media):
         "follows",
         "profile_visits",
         "profile_activity",
-        # New below
+        # New metrics below
         "total_interactions",
         "video_views",
         "likes",
         "comments",
     ]
     CAROUSEL_ALBUM_METRICS = [
-        "carousel_album_engagement",
-        "carousel_album_impressions",
-        "carousel_album_reach",
-        "carousel_album_saved",
-        "carousel_album_video_views",
-        # New below, delete old ones above
+        # "carousel_album_engagement",
+        # "carousel_album_impressions",
+        # "carousel_album_reach",
+        # "carousel_album_saved",
+        # "carousel_album_video_views",
+        # New metrics below
         "total_interactions",
         "impressions",
         "reach",
@@ -892,12 +894,12 @@ class StoryInsights(Stories):
     """Docs: https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"""
 
     metrics = [
-        "exits",
+        # "exits",
         "impressions",
         "reach",
         "replies",
-        "taps_forward",
-        "taps_back",
+        # "taps_forward",
+        # "taps_back",
         "follows",
         "profile_visits",
         "profile_activity",

@@ -35,6 +35,8 @@ The setup only requires two fields. First is the `host` which is the address at 
 
 ## Changelog
 
-| Version | Date       | Pull Request                                             | Subject                   |
-| :------ | :--------- | :------------------------------------------------------- | :------------------------ |
-| 0.1.0   | 2022-10-28 | [18349](https://github.com/airbytehq/airbyte/pull/18349) | New Typesense destination |
+| Version | Date       | Pull Request                                             | Subject                       |
+| :------ | :--------- | :------------------------------------------------------- | :---------------------------- |
+| 0.1.2   | 2023-08-25 | [29817](https://github.com/airbytehq/airbyte/pull/29817) | Fix writing multiple streams  |
+| 0.1.1   | 2023-08-24 | [29555](https://github.com/airbytehq/airbyte/pull/29555) | Increasing connection timeout |
+| 0.1.0   | 2022-10-28 | [18349](https://github.com/airbytehq/airbyte/pull/18349) | New Typesense destination     |

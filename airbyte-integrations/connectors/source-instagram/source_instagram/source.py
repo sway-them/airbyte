@@ -11,7 +11,20 @@ from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from pydantic import BaseModel, Field
 from source_instagram.api import InstagramAPI
-from source_instagram.streams import Media, MediaInsights, Stories, StoryInsights, UserInsights, UserLifetimeInsights, Users
+from source_instagram.streams import (
+    DailyUserInsights,
+    Media,
+    MediaInsights,
+    ProfileActivityMediaInsights,
+    Stories,
+    StoryInsights,
+    UserDemographicsInsights,
+    UserInsights,
+    UserInsightsWithBreakdown,
+    UserLifetimeInsights,
+    Users,
+    UserTags,
+)
 
 
 class ConnectorConfig(BaseModel):
@@ -95,6 +108,11 @@ class SourceInstagram(AbstractSource):
             Users(api=api),
             UserLifetimeInsights(api=api),
             UserInsights(api=api, start_date=config["start_date"]),
+            DailyUserInsights(api=api),
+            ProfileActivityMediaInsights(api=api),
+            UserDemographicsInsights(api=api),
+            UserInsightsWithBreakdown(api=api),
+            UserTags(api=api),
         ]
 
     def spec(self, *args, **kwargs) -> ConnectorSpecification:

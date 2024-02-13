@@ -60,6 +60,8 @@ class ConnectorConfig(BaseModel):
         airbyte_hidden=True,
     )
 
+    account_ids: Optional[str] = Field(description=("Instagram account ids"))
+
 
 class SourceInstagram(AbstractSource):
     def check_connection(self, logger, config: Mapping[str, Any]) -> Tuple[bool, Any]:
@@ -74,8 +76,10 @@ class SourceInstagram(AbstractSource):
 
         try:
             self._validate_start_date(config)
-
-            api = InstagramAPI(access_token=config["access_token"])
+            account_ids = None
+            if "account_ids" in config:
+                account_ids = config["account_ids"]
+            api = InstagramAPI(access_token=config["access_token"], account_ids=account_ids)
             logger.info(f"Available accounts: {api.accounts}")
             ok = True
         except Exception as exc:
@@ -96,7 +100,10 @@ class SourceInstagram(AbstractSource):
 
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
-        api = InstagramAPI(access_token=config["access_token"])
+        account_ids = None
+        if "account_ids" in config:
+            account_ids = config["account_ids"]
+        api = InstagramAPI(access_token=config["access_token"], account_ids=account_ids)
 
         self._validate_start_date(config)
 

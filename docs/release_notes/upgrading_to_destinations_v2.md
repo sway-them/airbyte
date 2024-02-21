@@ -133,7 +133,7 @@ When you are done testing, you can disable or delete this testing connection, an
 If you have written downstream transformations directly from the output of raw tables, or use the "Raw JSON" normalization setting, you should know that:
 
 - Multiple column names are being updated (from `airbyte_ab_id` to `airbyte_raw_id`, and `airbyte_emitted_at` to `airbyte_extracted_at`).
-- The location of raw tables will from now on default to an `airbyte` schema in your destination.
+- The location of raw tables will from now on default to an `airbyte_internal` schema in your destination.
 - When you upgrade to a [Destinations V2 compatible version](#destinations-v2-effective-versions) of your destination, we will leave a copy of your existing raw tables as they are, and new syncs will work from a new copy we make in the new `airbyte_internal` schema. Although existing downstream dashboards will go stale, they will not be broken.
 - You can dual write by following the [steps above](#upgrading-connections-one-by-one-with-dual-writing) and copying your raw data to the schema of your newly created connection.
 
@@ -158,7 +158,7 @@ For each destination connector, Destinations V2 is effective as of the following
 | --------------------- | --------------------- | -------------------------- | ------------------------ |
 | BigQuery              | 1.10.2                | 2.0.6+                     | November 7, 2023         |
 | Snowflake             | 2.1.7                 | 3.1.0+                     | November 7, 2023         |
-| Redshift              | 0.6.11                | [coming soon] 2.0.0+       | [coming soon] early 2024 |
+| Redshift              | 0.8.0                 | 2.0.0+                     | March 15, 2024           |
 | Postgres              | 0.4.0                 | [coming soon] 2.0.0+       | [coming soon] early 2024 |
 | MySQL                 | 0.2.0                 | [coming soon] 2.0.0+       | [coming soon] early 2024 |
 
@@ -186,8 +186,38 @@ In addition to the changes which apply for all destinations described above, the
 
 ### BigQuery
 
-1. [Object and array properties](https://docs.airbyte.com/understanding-airbyte/supported-data-types/#the-types) are properly stored as JSON columns. Previously, we had used TEXT, which made querying sub-properties more difficult.
-   - In certain cases, numbers within sub-properties with long decimal values will need to be converted to float representations due to a _quirk_ of Bigquery. Learn more [here](https://github.com/airbytehq/airbyte/issues/29594).
+#### [Object and array properties](https://docs.airbyte.com/understanding-airbyte/supported-data-types/#the-types) are properly stored as JSON columns
+Previously, we had used TEXT, which made querying sub-properties more difficult.
+In certain cases, numbers within sub-properties with long decimal values will need to be converted to float representations due to a _quirk_ of Bigquery. Learn more [here](https://github.com/airbytehq/airbyte/issues/29594).
+
+### Snowflake
+
+#### Explicitly uppercase column names in Final Tables
+Snowflake will implicitly uppercase column names if they are not quoted. Airbyte needs to quote the column names because a variety of sources have column/field names which contain special characters that require quoting in Snowflake.
+However, when you quote a column name in Snowflake, it also preserves lowercase naming. During the Snowflake V2 beta, most customers found this behavior unexpected and expected column selection to be case-insensitive for columns without special characters.
+As a result of this feedback, we decided to explicitly uppercase column names in the final tables, which does mean that columns which previous required quoting, now also require you to convert to the upper case version.
+
+For example:
+
+```sql
+-- Snowflake will implicitly uppercase column names which are not quoted
+-- These three queries are equivalent
+SELECT my_column from my_table;
+SELECT MY_COLUMN from MY_TABLE;
+SELECT "MY_COLUMN" from MY_TABLE;
+
+-- However, this query is different, and requires a lowercase column name
+SELECT "my_column" from my_table;
+
+-- Because we are explicitly upper-casing column names, column names containing special characters (like a space)
+-- should now also be uppercase
+
+-- Before v2
+SELECT "my column" from my_table;
+-- After v2
+SELECT "MY COLUMN" from my_table;
+```
+
 
 ## Updating Downstream Transformations
 

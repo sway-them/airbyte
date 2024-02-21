@@ -900,6 +900,7 @@ class StoryInsights(Stories):
         "replies",
         # "taps_forward",
         # "taps_back",
+        "navigation",
         "follows",
         "profile_visits",
         "profile_activity",

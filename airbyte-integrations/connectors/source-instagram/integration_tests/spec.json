@@ -36,8 +36,15 @@
       "account_ids": {
         "title": "Instagram account ids",
         "description": "The Instagram account ID(s) to pull data from.",        
-        "type": "string"
-      }
+        "pattern_descriptor": "The Ad Account ID must be a number.",
+        "examples": ["111111111111111"],
+        "type": "array",
+        "items": {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        },
+        "uniqueItems": true
+      }      
     },
     "required": ["access_token"]
   },

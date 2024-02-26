@@ -3,13 +3,13 @@
 #
 
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Set, Tuple
 
 import pendulum
 from airbyte_cdk.models import AdvancedAuth, ConnectorSpecification, DestinationSyncMode, OAuthConfigSpecification
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from source_instagram.api import InstagramAPI
 from source_instagram.streams import (
     DailyUserInsights,
@@ -60,7 +60,14 @@ class ConnectorConfig(BaseModel):
         airbyte_hidden=True,
     )
 
-    account_ids: Optional[str] = Field(description=("Instagram account ids"))
+    account_ids: Optional[Set[constr(regex="^[0-9]+$")]] = Field(
+        title="Instagram account ID(s)",
+        order=0,
+        description=("The Instagram account ID(s) to pull data from. "),
+        pattern_descriptor="The Ad Account ID must be a number.",
+        examples=["111111111111111"],
+        min_items=1,
+    )
 
 
 class SourceInstagram(AbstractSource):
@@ -78,7 +85,7 @@ class SourceInstagram(AbstractSource):
             self._validate_start_date(config)
             account_ids = None
             if "account_ids" in config:
-                account_ids = config["account_ids"]
+                account_ids = list(config["account_ids"])
             api = InstagramAPI(access_token=config["access_token"], account_ids=account_ids)
             logger.info(f"Available accounts: {api.accounts}")
             ok = True
@@ -102,7 +109,7 @@ class SourceInstagram(AbstractSource):
         """
         account_ids = None
         if "account_ids" in config:
-            account_ids = config["account_ids"]
+            account_ids = list(config["account_ids"])
         api = InstagramAPI(access_token=config["access_token"], account_ids=account_ids)
 
         self._validate_start_date(config)

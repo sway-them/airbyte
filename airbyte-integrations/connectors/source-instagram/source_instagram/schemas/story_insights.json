@@ -18,6 +18,18 @@
     },
     "replies": {
       "type": ["null", "integer"]
+    },
+    "navigation": {
+      "type": ["null", "integer"]
+    },
+    "follows": {
+      "type": ["null", "integer"]
+    },
+    "profile_visits": {
+      "type": ["null", "integer"]
+    },
+    "profile_activity": {
+      "type": ["null", "integer"]
     }
   }
 }

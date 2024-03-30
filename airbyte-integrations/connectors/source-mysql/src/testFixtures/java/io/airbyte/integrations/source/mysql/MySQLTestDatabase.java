@@ -4,6 +4,9 @@
 
 package io.airbyte.integrations.source.mysql;
 
+import static io.airbyte.integrations.source.mysql.MySqlSpecConstants.INVALID_CDC_CURSOR_POSITION_PROPERTY;
+import static io.airbyte.integrations.source.mysql.MySqlSpecConstants.RESYNC_DATA_OPTION;
+
 import com.google.common.collect.ImmutableMap;
 import io.airbyte.cdk.db.factory.DatabaseDriver;
 import io.airbyte.cdk.testutils.TestDatabase;
@@ -37,7 +40,8 @@ public class MySQLTestDatabase extends
     ROOT_AND_SERVER_CERTIFICATES("withRootAndServerCertificates"),
     CLIENT_CERTITICATE("withClientCertificate"),
     NETWORK("withNetwork"),
-    ;
+
+    CUSTOM_NAME("withCustomName");
 
     public final String methodName;
 
@@ -80,18 +84,19 @@ public class MySQLTestDatabase extends
         "sh", "-c", "ln -s -f /var/lib/mysql/mysql.sock /var/run/mysqld/mysqld.sock"),
         mysqlCmd(Stream.of(
             String.format("SET GLOBAL max_connections=%d", MAX_CONNECTIONS),
-            String.format("CREATE DATABASE %s", getDatabaseName()),
+            String.format("CREATE DATABASE \\`%s\\`", getDatabaseName()),
             String.format("CREATE USER '%s' IDENTIFIED BY '%s'", getUserName(), getPassword()),
             // Grant privileges also to the container's user, which is not root.
             String.format("GRANT ALL PRIVILEGES ON *.* TO '%s', '%s' WITH GRANT OPTION", getUserName(),
                 getContainer().getUsername()))));
+
   }
 
   @Override
   protected Stream<String> inContainerUndoBootstrapCmd() {
     return mysqlCmd(Stream.of(
         String.format("DROP USER '%s'", getUserName()),
-        String.format("DROP DATABASE %s", getDatabaseName())));
+        String.format("DROP DATABASE \\`%s\\`", getDatabaseName())));
   }
 
   @Override
@@ -126,12 +131,17 @@ public class MySQLTestDatabase extends
     }
 
     public MySQLConfigBuilder withCdcReplication() {
+      return withCdcReplication(RESYNC_DATA_OPTION);
+    }
+
+    public MySQLConfigBuilder withCdcReplication(String cdcCursorFailBehaviour) {
       return this
           .with("is_test", true)
           .with("replication_method", ImmutableMap.builder()
               .put("method", "CDC")
               .put("initial_waiting_seconds", 5)
               .put("server_time_zone", "America/Los_Angeles")
+              .put(INVALID_CDC_CURSOR_POSITION_PROPERTY, cdcCursorFailBehaviour)
               .build());
     }
 

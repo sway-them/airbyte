@@ -1,1 +1,4 @@
 NEW_SOURCE_CHECKLIST.md
+/venv
+/secrets
+*.ipynb

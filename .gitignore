@@ -100,5 +100,8 @@ tools/ci_connector_ops/pipeline_reports/
 # ignore local build scan uri output
 scan-journal.log
 
+airbyte-integrations/connectors/source-facebook-marketing/venv
+airbyte-integrations/connectors/source-instagram/venv
 # connectors' cache
 *.sqlite
+airbyte-integrations/connectors/source-instagram/test_custom_connector.ipynb

@@ -64,10 +64,11 @@ class MyFacebookAdsApi(FacebookAdsApi):
 
 
 class InstagramAPI:
-    def __init__(self, access_token: str):
+    def __init__(self, access_token: str, account_ids: set = None):
         # design flaw in MyFacebookAdsApi requires such strange set of new default api instance
         self.api = MyFacebookAdsApi.init(access_token=access_token, crash_log=False)
         FacebookAdsApi.set_default_api(self.api)
+        self.account_ids = account_ids
 
     @cached_property
     def accounts(self) -> List[Mapping[str, Any]]:
@@ -80,12 +81,23 @@ class InstagramAPI:
             for account in accounts:
                 page = Page(account.get_id()).api_get(fields=["instagram_business_account"])
                 if page.get("instagram_business_account"):
-                    instagram_business_accounts.append(
-                        {
-                            "page_id": account.get_id(),
-                            "instagram_business_account": IGUser(page.get("instagram_business_account").get("id")),
-                        }
-                    )
+                    ig_user_id = page.get("instagram_business_account").get("id")
+                    if self.account_ids is not None:
+                        if ig_user_id in self.account_ids:
+                            instagram_business_accounts.append(
+                                {
+                                    "page_id": account.get_id(),
+                                    "instagram_business_account": IGUser(ig_user_id),
+                                }
+                            )
+                    else:
+                        instagram_business_accounts.append(
+                            {
+                                "page_id": account.get_id(),
+                                "instagram_business_account": IGUser(ig_user_id),
+                            }
+                        )
+
         except FacebookRequestError as exc:
             # 200 - 299, 3 and 10 are permission related error codes
             if 200 <= exc.api_error_code() <= 299 or exc.api_error_code() in [3, 10]:
